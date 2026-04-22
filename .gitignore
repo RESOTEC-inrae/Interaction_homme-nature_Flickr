@@ -1,0 +1,6 @@
+#Project files to ignore
+data_output/
+data_raw/
+data_temp/
+cache/
+script_vegetation/lib/
