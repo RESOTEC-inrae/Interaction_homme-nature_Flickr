@@ -10,90 +10,84 @@ import numpy as np
 import osmnx as ox
 import rasterio
 from rasterio.merge import merge
+from pathlib import Path
 
 
 ###Variable
 
 square_size = 100  # size of square (in meters)
+name_territory = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
 
-###Lecture des données
+### Data reading
 
 #donnée photo
-photo = pd.read_csv("data_raw/flickr_location.csv")
-
-#emprise
-#region of interest, with data
-paca = gpd.read_file("data_raw/PACA.shp").to_crs(2154)
-paca = paca.to_crs(4326)
+photo = pd.read_csv("data_raw/Image/flickr_location_Sainte-Baume.csv")
 
 #every field of study
-name_territory = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies"]*
-if (name_territory == "Sainte-Baume"):
-    territory = gpd.read_file("data_raw/Parc/Sainte-Baume.shp")
-elif (name_territory == "Luberon"):
-    territory = gpd.read_file("data_raw/Parc/Luberon.shp")
-else :
-    print("not done yet")
-territory_L93 = territory.to_crs(2154)
-territory_WGS84 = territory.to_crs(4326)
+
+parcs = gpd.read_file("data_raw/Parc/ref_parc_bdtopo_pnrpaca.geojson")
+territory_L93 = parcs.loc[parcs["pnr_qgis"] == name_territory].to_crs(2154)
+geom_union_territory = territory_L93.union_all()
 territory_city = gpd.read_file("Data_raw/ADMIN-EXPRESS_4-0__GPKG_LAMB93_FXX_2025-05-12/ADMIN-EXPRESS/1_DONNEES_LIVRAISON_2025-05-00071/ADE_4-0_GPKG_LAMB93_FXX-ED2025-05-12/ADE_4-0_GPKG_LAMB93_FXX-ED2025-05-12.gpkg",layer = "commune")
 
+liste_dep=[] #Position des dep (ex: vegetal_04 = position 0)
 
-#Bd Foret
-if(name_territory == "Sainte-Baume"):
-    vegetal_83 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D083_2015-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D083/FORMATION_VEGETALE.shp")
-    vegetal_13 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D013_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D013/FORMATION_VEGETALE.shp")
-    vegetal = pd.concat([vegetal_13, vegetal_83], ignore_index=True)
-elif (name_territory == "Luberon"):
-    vegetal_04 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D004_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D004/FORMATION_VEGETALE.shp")
-    vegetal_13 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D013_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D013/FORMATION_VEGETALE.shp")
-    vegetal_84 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D084_2022-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D084/FORMATION_VEGETALE.shp")
-    vegetal = pd.concat([vegetal_04,vegetal_13, vegetal_84], ignore_index=True)
-else :
-    print("not done yet")
+#%%%%%%%%  Bd Foret  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+vegetal_04 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D004_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D004/FORMATION_VEGETALE.shp")
+vegetal_05 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D005_2015-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D005/FORMATION_VEGETALE.shp")
+vegetal_06 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D006_2021-03-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D006/FORMATION_VEGETALE.shp")
+vegetal_13 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D013_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D013/FORMATION_VEGETALE.shp")
+vegetal_26 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D026_2014-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D026/FORMATION_VEGETALE.shp")
+vegetal_83 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D083_2015-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D083/FORMATION_VEGETALE.shp")
+vegetal_84 = gpd.read_file("data_raw/BDFORET_2-0__SHP_LAMB93_D084_2022-04-01/BDFORET/1_DONNEES_LIVRAISON/BDF_2-0_SHP_LAMB93_D084/FORMATION_VEGETALE.shp")
+list_dep_vegetal = [vegetal_04,vegetal_05,vegetal_06,vegetal_13,vegetal_26,vegetal_83,vegetal_84]
+list_vegetal = []
+j=0
+for i in list_dep_vegetal:
+    bbox = box(*i.total_bounds)
+    if bbox.intersects(geom_union_territory):
+        list_vegetal.append(i)
+        liste_dep.append(j)
+    j=j+1
+vegetal = pd.concat(list_vegetal,ignore_index=True)   
 
-#Bd Alti
-
-if (name_territory == "Sainte-Baume"):
-    dtm1 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D083/BDALTIV2_25M_FXX_0900_6250_MNT_LAMB93_IGN69.asc")
-    dtm2 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D083/BDALTIV2_25M_FXX_0900_6275_MNT_LAMB93_IGN69.asc")
-    dtm3 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D083/BDALTIV2_25M_FXX_0925_6250_MNT_LAMB93_IGN69.asc")
-    dtm4 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D083/BDALTIV2_25M_FXX_0925_6275_MNT_LAMB93_IGN69.asc")
-    square = [
-        dtm1,
-        dtm2,
-        dtm3,
-        dtm4
-    ]
-elif (name_territory == "Luberon"):
-    dtm1 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0850_6325_MNT_LAMB93_IGN69.asc")
-    dtm2 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0850_6300_MNT_LAMB93_IGN69.asc")
-    dtm3 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0875_6325_MNT_LAMB93_IGN69.asc")
-    dtm4 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0875_6350_MNT_LAMB93_IGN69.asc")
-    dtm5 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0900_6350_MNT_LAMB93_IGN69.asc")
-    dtm6 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0900_6325_MNT_LAMB93_IGN69.asc")
-    dtm7 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0900_6300_MNT_LAMB93_IGN69.asc")
-    dtm8 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084/BDALTIV2_25M_FXX_0875_6300_MNT_LAMB93_IGN69.asc")
-    dtm9 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D004_2023-08-08/BDALTIV2/1_DONNEES_LIVRAISON_2023-08-00161/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D004/BDALTIV2_25M_FXX_0925_6350_MNT_LAMB93_IGN69.asc")
-    dtm10 = rasterio.open("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D004_2023-08-08/BDALTIV2/1_DONNEES_LIVRAISON_2023-08-00161/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D004/BDALTIV2_25M_FXX_0925_6325_MNT_LAMB93_IGN69.asc")
-    square = [dtm1,dtm2,dtm3,dtm4,dtm5,dtm6,dtm7,dtm8,dtm9,dtm10]
-else :
-    print("not done yet")
+#%%%%%%%%  Bd Alti  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dtm04 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D004_2023-08-08/BDALTIV2/1_DONNEES_LIVRAISON_2023-08-00161/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D004")
+dtm05 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D005_2021-08-04/BDALTIV2/1_DONNEES_LIVRAISON_2021-10-00008/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D005")
+dtm06 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D006_2023-08-08/BDALTIV2/1_DONNEES_LIVRAISON_2023-08-00161/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D006")
+dtm13 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D013_2022-07-29/BDALTIV2/1_DONNEES_LIVRAISON_2022-08-00118/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D013")
+dtm26 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D026_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D026")
+dtm83 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D083_2022-12-05/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D083")
+dtm84 = Path("data_raw/BDALTIV2_2-0_25M_ASC_LAMB93-IGN69_D084_2022-12-16/BDALTIV2/1_DONNEES_LIVRAISON_2023-01-00224/BDALTIV2_MNT_25M_ASC_LAMB93_IGN69_D084")
+list_dep_dtm = [dtm04,dtm05,dtm06,dtm13,dtm26,dtm83,dtm84]
 
 
-#BD TOPO
-if(name_territory == "Sainte-Baume"):
-    building_13 = gpd.read_file("data_raw/BDTOPO_3-0_TOUSTHEMES_SHP_LAMB93_D013_2022-03-15/BDTOPO/1_DONNEES_LIVRAISON_2022-03-00081/BDT_3-0_SHP_LAMB93_D013-ED2022-03-15/BATI/BATIMENT.shp")
-    building_83 = gpd.read_file("data_raw/BDTOPO_3-0_TOUSTHEMES_SHP_LAMB93_D083_2021-06-15/BDTOPO/1_DONNEES_LIVRAISON_2021-06-00164/BDT_3-0_SHP_LAMB93_D083-ED2021-06-15/BATI/BATIMENT.shp")
-    building = pd.concat([building_13, building_83], ignore_index=True)
-elif (name_territory == "Luberon"):
-    building_04 = gpd.read_file("data_raw/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_D004_2024-03-15/BDTOPO/1_DONNEES_LIVRAISON_2024-04-00042/BDT_3-3_SHP_LAMB93_D004-ED2024-03-15/BATI/BATIMENT.shp")
-    building_13 = gpd.read_file("data_raw/BDTOPO_3-0_TOUSTHEMES_SHP_LAMB93_D013_2022-03-15/BDTOPO/1_DONNEES_LIVRAISON_2022-03-00081/BDT_3-0_SHP_LAMB93_D013-ED2022-03-15/BATI/BATIMENT.shp")
-    building_84 = gpd.read_file("data_raw/BDTOPO_3-4_TOUSTHEMES_SHP_LAMB93_D084_2025-03-15/BDTOPO/1_DONNEES_LIVRAISON_2025-03-00288/BDT_3-4_SHP_LAMB93_D084_ED2025-03-15/BATI/BATIMENT.shp")
-    building = pd.concat([building_04,building_13, building_84], ignore_index=True)
-else :
-    print("not done yet")
+square = []
+for folder in list_dep_dtm :
+    for file in folder.iterdir():
+        if file.suffix.lower() in [".asc", ".tif", ".tiff"]:
+            with rasterio.open(file) as src:
+                bounds = src.bounds
+                raster_geom = box(*bounds)
+                if raster_geom.intersects(geom_union_territory):
+                    square.append(file)
+
+
+#%%%%%%%%  #BD TOPO  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+building_04 = gpd.read_file("data_raw/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_D004_2024-03-15/BDTOPO/1_DONNEES_LIVRAISON_2024-04-00042/BDT_3-3_SHP_LAMB93_D004-ED2024-03-15/BATI/BATIMENT.shp")
+building_05 = gpd.read_file("data_raw/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_D005_2024-03-15/BDTOPO/1_DONNEES_LIVRAISON_2024-04-00042/BDT_3-3_SHP_LAMB93_D005-ED2024-03-15/BATI/BATIMENT.shp")
+building_06 = gpd.read_file("data_raw/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_D006_2024-03-15/BDTOPO/1_DONNEES_LIVRAISON_2024-04-00042/BDT_3-3_SHP_LAMB93_D006-ED2024-03-15/BATI/BATIMENT.shp")
+building_13 = gpd.read_file("data_raw/BDTOPO_3-0_TOUSTHEMES_SHP_LAMB93_D013_2022-03-15/BDTOPO/1_DONNEES_LIVRAISON_2022-03-00081/BDT_3-0_SHP_LAMB93_D013-ED2022-03-15/BATI/BATIMENT.shp")
+building_26 = gpd.read_file("data_raw/BDTOPO_3-5_TOUSTHEMES_SHP_LAMB93_D026_2026-03-15/BDTOPO/1_DONNEES_LIVRAISON_2026-03-00141/BDT_3-5_SHP_LAMB93_D026_ED2026-03-15/BATI/BATIMENT.shp")
+building_83 = gpd.read_file("data_raw/BDTOPO_3-0_TOUSTHEMES_SHP_LAMB93_D083_2021-06-15/BDTOPO/1_DONNEES_LIVRAISON_2021-06-00164/BDT_3-0_SHP_LAMB93_D083-ED2021-06-15/BATI/BATIMENT.shp")
+building_84 = gpd.read_file("data_raw/BDTOPO_3-4_TOUSTHEMES_SHP_LAMB93_D084_2025-03-15/BDTOPO/1_DONNEES_LIVRAISON_2025-03-00288/BDT_3-4_SHP_LAMB93_D084_ED2025-03-15/BATI/BATIMENT.shp")
+
+list_dep_building = [building_04,building_05,building_06,building_13,building_26,building_83,building_84]
+list_building = []
+for i in liste_dep:
+    list_building.append(list_dep_building[i])
+building = pd.concat(list_building,ignore_index=True)   
 
 # ### Script #########################################
 
@@ -131,49 +125,35 @@ grid = gpd.read_file("data_output/blank_square.shp")
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # #Filtrage des photos pour enlever les photos des zones urbaines
-# building = gpd.clip(building, territory_L93)
+# territory_L93_buffer = territory_L93.buffer(5000)
+# building = gpd.clip(building, territory_L93_buffer)
 
 # urban_area = building.buffer(150).union_all().buffer(-150)
 # urban_area_gdf = gpd.GeoDataFrame(
 #    geometry=[urban_area],
 #    crs=2154
 # )
-# #urban_area_gdf.to_file("data_output/urban_area.shp")
+# urban_area_gdf.to_file("data_output/urban_area.shp")
 urban_area_gdf = gpd.read_file("data_output/urban_area.shp")
 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # donnée des mairies
-urban_area_city = gpd.overlay(urban_area_gdf, territory_city, how="intersection")
-urban_area_city.to_file("data_output/temporaire_urbain.shp")
-#largest_urban = urban_area_city.loc[urban_area_city.area.idxmax()]
+# urban_area_city = gpd.overlay(urban_area_gdf, territory_city, how="intersection")
+# urban_area_city = urban_area_city.explode(index_parts=False)
+# urban_area_city.to_file("data_output/temporaire_urbain.shp")
 
-largest_urban = (
-    urban_area_city
-    .assign(area=urban_area_city.area)
-    .sort_values("area", ascending=False)
-    .groupby("code_insee")
-    .head(1)
-)
-center_town = largest_urban.geometry.representative_point()
-
-# center_town = gpd.GeoDataFrame(
-#     geometry=[center_town],
-#     crs=urban_area_city.crs
+# largest_urban = (
+#     urban_area_city
+#     .assign(area=urban_area_city.area)
+#     .sort_values("area", ascending=False)
+#     .groupby("code_insee")
+#     .head(1)
 # )
+# center_town = largest_urban.geometry.centroid
+# center_town.to_file("data_output/centre_ville.shp")
+center_town = gpd.read_file("data_output/centre_ville.shp")
 
-#center_town.to_file("data_output/centre_ville.shp")
-#center_town = gpd.read_file("data_output/centre_ville.shp")
-
-# paca = paca.geometry.union_all()
-# paca = paca.buffer(0)
-
-# townhalls = ox.features_from_polygon(
-#     paca,
-#     tags={'amenity': 'townhall'}
-# )
-
-# townhalls = townhalls.to_crs(2154)
-# townhalls["geometry"] = townhalls.buffer(10)
+############ ancienne version ==> utilisation des données OSM ==> townhalls = ox.features_from_polygon(paca,tags={'amenity': 'townhall'})
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #Compte du nombre de photo dans chaque carreaux de la grid pour chaque saison
@@ -233,15 +213,18 @@ def get_season_astronomical(date):
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # #Récupération des chemins et calcul de la distance des carrés au chemin
+# territory_WGS84 = territory_L93.buffer(5000).to_crs(4326)
 # zone_etude = territory_WGS84.geometry.iloc[0]
 # G_walk = ox.graph_from_polygon(zone_etude, network_type="walk")
 # edges_G_Walk = ox.graph_to_gdfs(G_walk, nodes=False).to_crs(2154)
 
-# grid_centroid = gpd.GeoDataFrame(
-#     grid,
-#     geometry=grid.centroid,
-#     crs="EPSG:2154"
-# )
+# edges_G_Walk.to_file("data_output/reseau_marche.shp")
+
+grid_centroid = gpd.GeoDataFrame(
+    grid,
+    geometry=grid.centroid,
+    crs="EPSG:2154"
+)
 
 # dist = gpd.sjoin_nearest(
 #     grid_centroid,
@@ -264,7 +247,8 @@ def get_season_astronomical(date):
 #     )
 # dist_road = dist_road.drop(columns=["geometry",'u','v','key','osmid','maxspeed','access','junction','bridge','width','service','tunnel','highway','name','ref','oneway','reversed','length','lanes'])
 
-# dist_center_town = edges_G_Walk
+
+
 # gs.run_command(
 #     "v.net",
 #     input=edges_G_Walk,
@@ -376,14 +360,15 @@ grid = gpd.read_file("data_output/vegetation_cercle.shp")
 #   dtm
 
 # mosaic, out_transform = merge(square)
-
-# metadonne_tif = dtm1.meta.copy()
-# metadonne_tif.update({
-#     "driver": "GTiff",
-#     "height": mosaic.shape[1],
-#     "width": mosaic.shape[2],
-#     "transform": out_transform
-# })
+# with rasterio.open(square[0]) as src:
+#     metadonne_tif = src.meta.copy()
+#     metadonne_tif.update({
+#         "driver": "GTiff",
+#         "height": mosaic.shape[1],
+#         "width": mosaic.shape[2],
+#         "transform": out_transform,
+#         "crs": "EPSG:2154"
+#     })
 
 # grid_centroid_alti = grid_centroid.copy()
 
@@ -397,6 +382,9 @@ grid = gpd.read_file("data_output/vegetation_cercle.shp")
 # grid_centroid_alti["altitude"] = [val[0] for val in values]
 # grid_centroid_alti = grid_centroid_alti.drop(columns = ["geometry"])
 # grid = grid.merge(grid_centroid_alti, on=["square_id"],how="left")
+
+# grid.to_file("data_output/altitude.shp")
+
 
 
 # grid["F_fermee"] = grid["F_fermee"].fillna(0)
