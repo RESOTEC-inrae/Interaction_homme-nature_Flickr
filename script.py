@@ -198,6 +198,7 @@ def get_season_astronomical(date):
 # joined = gpd.sjoin(photo_outside, grid, predicate="within")
 # joined["Date"] = joined["Date_Taken"].dt.round("h")
 # joined = joined.sort_values("Date_Taken").drop_duplicates(subset=["index_right", "Date","Owner_Name"])
+# ########### joined = joined.sort_values("Date_Taken").drop_duplicates(subset=["index_right", "Date"]) ##########  Another version if we can't know the user
 # counts = joined.groupby(['index_right', 'season']).size().unstack(fill_value=0)
 # grid = grid.join(counts)
 # grid = grid.fillna(0)
