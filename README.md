@@ -19,18 +19,18 @@ You also need adapt line 24 to read you file with the photos informations.
 
 ### Important information for the photo
 
-For this script, we are using deux different informations :
-When the photo was taken : "Date"
-The name of the username who posted the photo : "Owner_Name"
+For this script, we are using deux different informations :  
+When the photo was taken : "Date"  
+The name of the username who posted the photo : "Owner_Name"  
 It's possible to remove the username as a condition if it doesn't exist, 
 you just need to uncomment the line 200 and comment the line 199
 
 ### Data
 
-For this script, we used mainly informations from the french IGN(geographical national institute)
-Vegetation (BD Foret) : https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-FORET?redirected_from=geoservices.ign.fr#telechargementv1
-Altitude (BD Alti): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-ALTI
-Building (BD Topo): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-TOPO
+For this script, we used mainly informations from the french IGN(geographical national institute) 
+Vegetation (BD Foret) : https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-FORET?redirected_from=geoservices.ign.fr#telechargementv1  
+Altitude (BD Alti): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-ALTI  
+Building (BD Topo): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-TOPO  
 
 For mesuring the acceess to the city, we use informations from Open Street Map (OSM)
 
