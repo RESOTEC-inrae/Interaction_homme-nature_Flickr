@@ -1,6 +1,6 @@
 # Stage Grandmaison Roland
 
-This code allow to link photos taken from a social network (Here Flickr) and the various informations about the vegetation and the condition (altitude,accessibility...) when they were taken.
+This code allow to link photos taken from a social network (Here Flickr) and the various informations about the vegetation and the condition (elevation,accessibility...) when they were taken.
 
 
 # Pré-requis et Installation
@@ -29,7 +29,7 @@ you just need to uncomment the line 200 and comment the line 199
 
 For this script, we used mainly informations from the french IGN(geographical national institute) 
 Vegetation (BD Foret) : https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-FORET?redirected_from=geoservices.ign.fr#telechargementv1  
-Altitude (BD Alti): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-ALTI  
+Elevation (BD Alti): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-ALTI  
 Building (BD Topo): https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_BD-TOPO  
 
 For mesuring the acceess to the city, we use informations from Open Street Map (OSM)
