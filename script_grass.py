@@ -51,7 +51,12 @@ gsetup.init(
 # gs.run_command("v.db.addcolumn",map="reseau_clean",columns="length double precision",overwrite=True)
 # gs.run_command("v.to.db",map="reseau_clean",option="length",columns="length",units="meters",overwrite=True)
 
-gs.run_command("v.out.ogr", input="reseau_clean",type="line", output="C:/Users/rgrandmaiso/Documents/Flickr_vegetation_Roland/data_output/reseau.shp", format="ESRI_Shapefile",overwrite=True)
+# gs.run_command("v.out.ogr", input="reseau_clean",type="line", output="C:/Users/rgrandmaiso/Documents/Flickr_vegetation_Roland/data_output/network.shp", format="ESRI_Shapefile",overwrite=True)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

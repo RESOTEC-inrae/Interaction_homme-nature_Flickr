@@ -10,7 +10,7 @@ import numpy as np
 import osmnx as ox
 import rasterio
 from rasterio.merge import merge
-from rasterio.transform import rowcol
+#from rasterio.transform import rowcol
 from pathlib import Path
 
 
@@ -110,7 +110,7 @@ building = pd.concat(list_building,ignore_index=True)   # fusionning the data fr
 #         grid.append(box(x0, y0, x1, y1)) #adding the new square to the exit result
 
 # grid = gpd.GeoDataFrame(geometry=grid, crs=territory_L93.crs) #transform the list of geometry in a single geometry
-# grid["square_id"] = range(len(grid)) # create a unique ID
+
 
 # # creation of a id with a 2x2 square
 # sq_ids = []
@@ -123,13 +123,15 @@ building = pd.concat(list_building,ignore_index=True)   # fusionning the data fr
 #         sq_ids.append(square_id)
 # grid["sq_id_2X"] = sq_ids
 
+# grid = gpd.clip(grid, territory_L93) 
+# grid["square_id"] = range(len(grid)) # create a unique ID
 # grid.to_file("data_output/blank_square.shp")
 
-grid = gpd.read_file("data_output/blank_square.shp")
+# grid = gpd.read_file("data_output/blank_square.shp")
 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# # Photo filtering to remove photos of urban areas
+# Photo filtering to remove photos of urban areas
 # territory_L93_buffer = territory_L93.buffer(5000) # Adding 5km around the park to better represent the urban area around the park
 # building = gpd.clip(building, territory_L93_buffer) # Keeping only the building in or close to the park
 
@@ -139,7 +141,7 @@ grid = gpd.read_file("data_output/blank_square.shp")
 #    crs=2154
 # )
 # urban_area_gdf.to_file("data_output/urban_area.shp")
-urban_area_gdf = gpd.read_file("data_output/urban_area.shp")
+# urban_area_gdf = gpd.read_file("data_output/urban_area.shp")
 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # # Determining urban center of each towns
@@ -158,7 +160,7 @@ urban_area_gdf = gpd.read_file("data_output/urban_area.shp")
 
 # center_town = largest_urban.geometry.centroid # Create the centroid from this remaining geometry
 # center_town.to_file("data_output/centre_ville.shp")
-center_town = gpd.read_file("data_output/centre_ville.shp")
+#center_town = gpd.read_file("data_output/centre_ville.shp")
 
 ############ ancienne version ==> utilisation des données OSM ==> townhalls = ox.features_from_polygon(paca,tags={'amenity': 'townhall'})
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,26 +174,26 @@ gdf_photo = gpd.GeoDataFrame(
 ) # Transforming the photo information into geographical data
 gdf_photo = gdf_photo.to_crs(2154) # change the projection to match the rest of the script
 
-# create a join between the photos and the urban area
-photo_outside = gpd.sjoin(gdf_photo, urban_area_gdf, predicate="within", how="left")
-# keep all photos that didn't find a correspondance with the urban area
-photo_outside = photo_outside[photo_outside.index_right.isna()]
-# photo_outside.to_file("data_output/photo_nature.shp")
+# # create a join between the photos and the urban area
+# photo_outside = gpd.sjoin(gdf_photo, urban_area_gdf, predicate="within", how="left")
+# # keep all photos that didn't find a correspondance with the urban area
+# photo_outside = photo_outside[photo_outside.index_right.isna()]
+# # photo_outside.to_file("data_output/photo_nature.shp")
 
-def get_season_astronomical(date): # function that determine which season the photo has been taken
-    year = date.year
-    spring = pd.Timestamp(year=year, month=3, day=20)
-    summer = pd.Timestamp(year=year, month=6, day=21)
-    autumn = pd.Timestamp(year=year, month=9, day=23)
-    winter = pd.Timestamp(year=year, month=12, day=21)
-    if spring <= date < summer:
-        return "nb_spring"
-    elif summer <= date < autumn:
-        return "nb_summer"
-    elif autumn <= date < winter:
-        return "nb_autumn"
-    else:
-        return "nb_winter"
+# def get_season_astronomical(date): # function that determine which season the photo has been taken
+#     year = date.year
+#     spring = pd.Timestamp(year=year, month=3, day=20)
+#     summer = pd.Timestamp(year=year, month=6, day=21)
+#     autumn = pd.Timestamp(year=year, month=9, day=23)
+#     winter = pd.Timestamp(year=year, month=12, day=21)
+#     if spring <= date < summer:
+#         return "nb_spring"
+#     elif summer <= date < autumn:
+#         return "nb_summer"
+#     elif autumn <= date < winter:
+#         return "nb_autumn"
+#     else:
+#         return "nb_winter"
 
 # photo_outside["Date_Taken"] = pd.to_datetime(
 #     photo_outside["Date_Taken"],
@@ -205,7 +207,7 @@ def get_season_astronomical(date): # function that determine which season the ph
 # joined = gpd.sjoin(photo_outside, grid, predicate="within") #spatial join between the photo and the grid
 # joined["Date"] = joined["Date_Taken"].dt.round("h") # standardize date format like removing hour (date data from different devices can be different)
 # joined = joined.sort_values("Date_Taken").drop_duplicates(subset=["index_right", "Date","Owner_Name"]) # Take only one interaction per square for each day and user
-# ########### joined = joined.sort_values("Date_Taken").drop_duplicates(subset=["index_right", "Date"]) ##########  Another version if we can't know the user
+# # ########### joined = joined.sort_values("Date_Taken").drop_duplicates(subset=["index_right", "Date"]) ##########  Another version if we can't know the user
 # counts = joined.groupby(['index_right', 'season']).size().unstack(fill_value=0) #count the number of photo from each season per square and transform the value of season into columns from lines
 # grid = grid.join(counts) # join the information on the main grid
 # grid = grid.fillna(0) # fill the empty one by 0
@@ -215,8 +217,8 @@ def get_season_astronomical(date): # function that determine which season the ph
 #     grid[col] = grid[col].astype(int) #transform into integer ==> transform numbers like 2.000000000000000 as 2 for better visibility
 
 # grid.to_file("data_output/season.shp")
-grid = gpd.read_file("data_output/season.shp")
 
+grid = gpd.read_file("data_output/season.shp")
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # #Obtain walking OSM network and calculate the distance between the squares and the network
@@ -263,15 +265,21 @@ grid_centroid = gpd.GeoDataFrame(
 
 # grid = grid.merge(dist, on=["square_id",'sq_id_2X','nb_spring','nb_summer','nb_winter','nb_autumn']) #Inserting the distance to a pathway into the main data file
 # grid = grid.merge(dist_road, on=["square_id",'sq_id_2X','nb_spring','nb_summer','nb_winter','nb_autumn']) #Inserting the distance to a roadway into the main data file
-# # grid.to_file("data_output/distance_route_mairie.shp")
+# grid.to_file("data_output/distance_route_mairie.shp")
+grid = gpd.read_file("data_output/distance_route_mairie.shp")
 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # #GRASS Script which allow to know the distance between the squares and the town centers
-# grid = gpd.read_file("data_output/network.shp")
+# Doesn't work well
+
+# Script R which allow to know the distance between the squares and the town centers
+dist_town = gpd.read_file("data_output/distance_town.shp")
+# dist_town = dist_town.drop(columns='geometry')
+# grid = grid.merge(dist_town, on=["square_id",'sq_id_2X','nb_spring','nb_summer','nb_winter','nb_autumn']) #Inserting the distance to the city into the main data file
 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# # #Integration of the forest coverage
+# #Integration of the forest coverage
 # vegetal = gpd.clip(vegetal, territory_L93) #keep only the data around our field of study
 
 # modifications = {
@@ -288,33 +296,34 @@ grid_centroid = gpd.GeoDataFrame(
 #     "Formation herbacée": "vege_bas",
 # } 
 # vegetal["TFV_G11"] = vegetal["TFV_G11"].replace(modifications) # we regroup some categories together when they are quite similar (in term of density)
-
+# print(grid.head(2))
+# vegetal["geometry"] = vegetal.buffer(0)
 # vegetal = vegetal.dissolve(by="TFV_G11").reset_index() # fusion of the same value of all polygons in the study area0
 
-# vegetal["geometry"] = vegetal.geometry.simplify(10) # Reducing the weight of the geometries
+# # vegetal["geometry"] = vegetal.geometry.simplify(10) # Reducing the weight of the geometries
 
 # vegetal.to_file("data_output/vegetation.shp")
 vegetal = gpd.read_file("data_output/vegetation.shp")
 
 # # ####################################################
-# grid = gpd.read_file("data_output/square_vegetation.shp")
-# grid = grid.drop(columns=['F_fermee','F_ouvert','Peupleraie','vege_bas'])
-# print(grid.head(2))
-# vegetal = gpd.overlay(vegetal, grid, how="intersection") # spatial intersection to cut the vegetation with the grid
-# vegetal["surface"] = vegetal.area # calculate the size of the new areas created by the line above
-# grid_forest = vegetal.groupby(["square_id", "TFV_G11"])["surface"].sum().reset_index() 
-# # It's possible that multiple polygon are present with the same type of vegetation, here we add them together 
 
-# grid_forest["surface"]=grid_forest["surface"]/100 #/10000 m²(surface)*100(%) ------ Obtain the proportion in the square of the vegetation
+vegetal = gpd.overlay(vegetal, grid, how="intersection") # spatial intersection to cut the vegetation with the grid
 
-# grid_forest = grid_forest.pivot(
-#     index="square_id",
-#     columns="TFV_G11",
-#     values="surface"
-# ).fillna(0) # Reshape the table so that each vegetation class in TFV_G11 (F_fermee, F_ouverte, Peupleraie, vege_bas) becomes a separate column containing the associated surface area
-# grid = grid.merge(grid_forest, on=["square_id"],how="left") #Inserting the value of vegetation into the main data file
+vegetal["surface"] = vegetal.area # calculate the size of the new areas created by the line above
+grid_forest = vegetal.groupby(["square_id", "TFV_G11"])["surface"].sum().reset_index() 
+# It's possible that multiple polygon are present with the same type of vegetation, here we add them together 
 
-# grid.to_file("data_output/square_vegetation.shp")
+grid_forest["surface"]=grid_forest["surface"]/100 #/10000 m²(surface)*100(%) ------ Obtain the proportion in the square of the vegetation
+
+grid_forest = grid_forest.pivot(
+    index="square_id",
+    columns="TFV_G11",
+    values="surface"
+).fillna(0) # Reshape the table so that each vegetation class in TFV_G11 (F_fermee, F_ouverte, Peupleraie, vege_bas) becomes a separate column containing the associated surface area
+grid = grid.merge(grid_forest, on=["square_id"],how="left") #Inserting the value of vegetation into the main data file
+
+grid.to_file("data_output/square_vegetation.shp")
+
 grid = gpd.read_file("data_output/square_vegetation.shp")
 
 
@@ -351,7 +360,7 @@ grid = gpd.read_file("data_output/square_vegetation.shp")
 grid = gpd.read_file("data_output/vegetation_cercle.shp")
 
 
-# %%%%%%%%%%%%%%%%% DTM
+# # %%%%%%%%%%%%%%%%% DTM
 
 mosaic, out_transform = merge(square) # Merge all raster tiles (previously only a list) into a single mosaic raster.
 with rasterio.open(square[0]) as src:
@@ -368,27 +377,27 @@ grid_centroid_alti = grid_centroid.copy() #The elevation chosen is the one at th
 
 ######### Version 1
 
-# # Create a static version of the result
-# with rasterio.open("data_output/mnt.tif", "w",**metadonne_tif) as dest:
-#     dest.write(mosaic)
-# with rasterio.open("data_output/mnt.tif") as src:
-#     coords = [(geom.x, geom.y) for geom in grid_centroid_alti.geometry]
-#     values = list(src.sample(coords))
-# grid_centroid_alti["elevation"] = [val[0] for val in values] # Obtain the elevation for each centroid of the squares
+# Create a static version of the result
+with rasterio.open("data_output/mnt.tif", "w",**metadonne_tif) as dest:
+    dest.write(mosaic)
+with rasterio.open("data_output/mnt.tif") as src:
+    coords = [(geom.x, geom.y) for geom in grid_centroid_alti.geometry]
+    values = list(src.sample(coords))
+grid_centroid_alti["elevation"] = [val[0] for val in values] # Obtain the elevation for each centroid of the squares
 
 ######### Version 2
 
-# coords = [(geom.x, geom.y) for geom in grid_centroid.geometry]
-# values = [] # Extract elevation values from the mosaic
-# for x, y in coords:
-#     row, col = rowcol(out_transform, x, y)
-#     values.append(mosaic[0, row, col])
-# grid_centroid_alti["elevation"] = values # Obtain the elevation for each centroid of the squares
+# # coords = [(geom.x, geom.y) for geom in grid_centroid.geometry]
+# # values = [] # Extract elevation values from the mosaic
+# # for x, y in coords:
+# #     row, col = rowcol(out_transform, x, y)
+# #     values.append(mosaic[0, row, col])
+# # grid_centroid_alti["elevation"] = values # Obtain the elevation for each centroid of the squares
 
-# ########
+# # ########
 
-# grid_centroid_alti = grid_centroid_alti.drop(columns = ["geometry"]) # remove the geometry before the merge to only keep one
-# grid = grid.merge(grid_centroid_alti, on=['square_id', 'sq_id_2X', 'nb_autumn', 'nb_spring', 'nb_summer','nb_winter'],how="left") #Inserting the value of elevation into the main data file
+grid_centroid_alti = grid_centroid_alti.drop(columns = ["geometry"]) # remove the geometry before the merge to only keep one
+grid = grid.merge(grid_centroid_alti, on=['square_id', 'sq_id_2X', 'nb_autumn', 'nb_spring', 'nb_summer','nb_winter'],how="left") #Inserting the value of elevation into the main data file
 
 
 grid.to_file(f"data_output/grid_square_{name_territory}.shp")
