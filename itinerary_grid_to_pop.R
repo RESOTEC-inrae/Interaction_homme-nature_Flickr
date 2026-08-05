@@ -3,14 +3,18 @@ library(dodgr)
 library(FNN)
 library(ggplot2)
 
+library(reticulate)
+use_python("/usr/bin/python3", required = TRUE)
+source_python("configuration.py")
+
 
 # -----------------------------
 # Lecture des données
 # -----------------------------
 #setwd("C:/Users/rgrandmaiso/Documents")
-name_territory = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
+#name_territory_full = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
 network <- st_read(paste0("data_output/reseau_marche_",name_territory,".shp"))
-from <- st_read(paste0("data_output/grid_square_",name_territory,".shp"))
+from <- st_read(paste0("data_output/score_access_",name_territory,".shp"))
 to <- st_read(paste0("data_output/pixels_population_",name_territory,".shp"))
 
 # -----------------------------
@@ -87,18 +91,19 @@ for (i in seq_len(nrow(from))) {
     accessibility = accessibility + 1000000*(pop/value)
     accessibility_square = accessibility_square + 1000000*(pop/(value*value))
     if (is.infinite(accessibility)&temp ==0) {
-      print(pop)
-      print(value)
+      #print(pop)
+      #print(value)
       temp = 1
     }
   }
   potential = accessibility/nrow(to_id)
   potential_square = accessibility_square/nrow(to_id)
-  from$access[i] = potential
-  from$access_rt[i] = potential_square
+  from$apl[i] = potential
+  from$apl_square[i] = potential_square
 }
 
 # -----------------------------
 # Ajout au sf
 # -----------------------------
-st_write(from,paste0("data_output/distance_pop_",name_territory,".shp"),append = FALSE,delete_layer = TRUE)
+
+st_write(from,paste0("data_output/final_result/",name_territory,".shp"),append = FALSE,delete_layer = TRUE)

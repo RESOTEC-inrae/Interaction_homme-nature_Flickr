@@ -7,14 +7,18 @@ library(ggplot2)
 library(sf)
 library(dodgr)
 
+library(reticulate)
+use_python("/usr/bin/python3", required = TRUE)
+source_python("configuration.py")
 
 # -----------------------------
 # Lecture des données
 # -----------------------------
 #setwd("C:/Users/rgrandmaiso/Documents")
-name_territory = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
+#name_territory_full = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
 network <- st_read(paste0("data_output/reseau_marche_",name_territory,".shp"))
 from <- st_read(paste0("data_output/distance_route_mairie_",name_territory,".shp"))
+#cat(paste0("data_output/centre_ville_",name_territory,".shp"))
 to <- st_read(paste0("data_output/centre_ville_",name_territory,".shp"))
 
 # -----------------------------
@@ -22,8 +26,8 @@ to <- st_read(paste0("data_output/centre_ville_",name_territory,".shp"))
 # -----------------------------
 network$dist_m <- as.numeric(st_length(network))
 graph <- weight_streetnet(network,wt_profile = "foot")
-graph$d <- sqrt((graph$from_lon - graph$to_lon)^2 +(graph$from_lat - graph$to_lat)^2)
-graph$d_weighted <- graph$d
+#graph$d <- sqrt((graph$from_lon - graph$to_lon)^2 +(graph$from_lat - graph$to_lat)^2)
+#graph$d_weighted <- graph$d
 
 # -----------------------------
 # Garder uniquement
@@ -32,6 +36,7 @@ graph$d_weighted <- graph$d
 
 comp <- dodgr_components(graph)
 main_comp <- as.integer(names(which.max(table(comp$component))))
+
 graph_main <- graph[graph$component == main_comp,]
 #vertices_keep <- comp$id[comp$component == main_comp]
 #graph_main <- graph[graph$from_id %in% vertices_keep & graph$to_id %in% vertices_keep,]
@@ -39,7 +44,6 @@ graph_main <- graph[graph$component == main_comp,]
 # -----------------------------
 # Sommets du graphe filtré
 # -----------------------------
-
 vertices <- dodgr_vertices(graph_main)
 
 # -----------------------------
@@ -58,6 +62,7 @@ from_id <- vertices$id[nearest_grid$nn.index[,1]]
 # -----------------------------
 
 to_xy <- st_coordinates(to)
+
 nearest_town <- get.knnx(data = vertices[, c("x", "y")],query = to_xy,k = 1)
 to_id <- unique(vertices$id[nearest_town$nn.index[,1]])
 
@@ -82,7 +87,6 @@ for(i in seq(1, length(from_id), by = 200)) {
       }
     }
   )
-  
   distances <- c(distances,as.numeric(dmin))
   gc()
 }
