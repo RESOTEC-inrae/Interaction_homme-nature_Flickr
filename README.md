@@ -1,5 +1,6 @@
 # Stage Grandmaison Roland
 
+This ReadME and the code will be finished by the end of the internship (22 of Septembre 2026)
 This code allow to link photos taken from a social network (Here Flickr) and the various informations about the vegetation and the condition (elevation,accessibility...) when they were taken.
 
 
