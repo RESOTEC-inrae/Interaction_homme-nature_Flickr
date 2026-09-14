@@ -5,20 +5,21 @@ library(ggplot2)
 
 library(reticulate)
 use_python("/usr/bin/python3", required = TRUE)
+args <- commandArgs(trailingOnly = TRUE)
+name_territory_full <- args[1]
 source_python("configuration.py")
+name_territory = name(name_territory_full)
 
 
 # -----------------------------
-# Lecture des données
+# Reading files
 # -----------------------------
-#setwd("C:/Users/rgrandmaiso/Documents")
-#name_territory_full = "Sainte-Baume" # possible name = ["Sainte-Baume","Luberon","Baronnies provençales","Alpilles","Camargue","Mont-Ventoux","Queyras","Verdon"]
 network <- st_read(paste0("data_output/reseau_marche_",name_territory,".shp"))
 from <- st_read(paste0("data_output/score_access_",name_territory,".shp"))
 to <- st_read(paste0("data_output/pixels_population_",name_territory,".shp"))
 
 # -----------------------------
-# Construction du graphe
+# Graph construction
 # -----------------------------
 network$dist_m <- as.numeric(st_length(network))
 graph <- weight_streetnet(network,wt_profile = "foot")
@@ -26,8 +27,7 @@ graph$d <- sqrt((graph$from_lon - graph$to_lon)^2 +(graph$from_lat - graph$to_la
 graph$d_weighted <- graph$d
 
 # -----------------------------
-# Garder uniquement
-# la composante principale
+# Keeping only the main composant
 # -----------------------------
 
 comp <- dodgr_components(graph)
@@ -37,13 +37,12 @@ graph_main <- graph[graph$component == main_comp,]
 #graph_main <- graph[graph$from_id %in% vertices_keep & graph$to_id %in% vertices_keep,]
 
 # -----------------------------
-# Sommets du graphe filtré
+# Filtered graph's peaks
 # -----------------------------
 vertices <- dodgr_vertices(graph_main)
 
 # -----------------------------
-# Associer les centroides
-# au réseau
+# Associate centroides to the network
 # -----------------------------
 
 from_centroid <- st_centroid(from)
@@ -66,7 +65,7 @@ to_id <- data.frame(to_xy,id = vertices$id[nearest_town$nn.index],distance = nea
 to_id$id <- seq_len(nrow(to_id))
 to_id$population = to$population
 # -----------------------------
-# Calcul des distances minimales
+# Minimal distance Calcul
 # -----------------------------
 
 dist_net <- dodgr_dists(
@@ -103,7 +102,7 @@ for (i in seq_len(nrow(from))) {
 }
 
 # -----------------------------
-# Ajout au sf
+# Adding the information of distance in the file
 # -----------------------------
 
 st_write(from,paste0("data_output/final_result/",name_territory,".shp"),append = FALSE,delete_layer = TRUE)
